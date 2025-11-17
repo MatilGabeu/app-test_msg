@@ -12,7 +12,7 @@
     <button onclick="sendMsg()">Envoyer</button>
 
     <script>
-        const ws = new WebSocket("wss://TON-SITE.onrender.com/ws");
+        const ws = new WebSocket("wss://app-test-msg.onrender.com.onrender.com/ws");
 
         ws.onmessage = (event) => {
             let div = document.getElementById("messages");
@@ -27,3 +27,4 @@
     </script>
 </body>
 </html>
+

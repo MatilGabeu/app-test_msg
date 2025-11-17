@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat WebSocket</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        #messages {
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 300px;
+            overflow-y: scroll;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chat WebSocket</h1>
+
+    <div id="messages"></div>
+
+    <input id="msg" type="text">
+    <button onclick="sendMsg()">Envoyer</button>
+
+    <script>
+        // Connexion WebSocket dynamiquement (Render = HTTPS → WSS obligatoire)
+        const ws = new WebSocket("wss://" + location.host + "/ws");
+
+        ws.onmessage = (event) => {
+            document.getElementById("messages").innerHTML += "<p>" + event.data + "</p>";
+        };
+
+        function sendMsg() {
+            const inp = document.getElementById("msg");
+            ws.send(inp.value);
+            inp.value = "";
+        }
+    </script>
+</body>
+</html>

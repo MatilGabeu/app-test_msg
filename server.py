@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,7 +13,7 @@ app = FastAPI()
 # Serve static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# CORS
+# CORS (utile si front séparé)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,9 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-connected_clients = []
-
-# Users stored in JSON
+# Utilisateurs stockés dans un JSON simple
 USERS_FILE = "users.json"
 
 def load_users():
@@ -37,33 +35,52 @@ def save_users(users):
     with open(USERS_FILE, "w") as f:
         json.dump(users, f, indent=4)
 
-# Register
+# WebSocket clients
+connected_clients = []
+
+# ----- ROUTES -----
+
+@app.get("/")
+def home():
+    return HTMLResponse("""
+    <h1>Serveur WebSocket opérationnel</h1>
+    <a href='/static/login.html'>➡️ Login</a>
+    """)
+
+# REGISTER
 @app.post("/register")
 def register(user: dict):
     users = load_users()
-    if user["username"] in users:
+    username = user.get("username")
+    password = user.get("password")
+    if not username or not password:
+        raise HTTPException(400, "Username et password requis")
+    if username in users:
         raise HTTPException(400, "Nom d'utilisateur déjà pris")
-    users[user["username"]] = {"password": user["password"]}
+    users[username] = {"password": password}
     save_users(users)
     return {"status": "ok"}
 
-# Login
+# LOGIN
 @app.post("/login")
 def login(user: dict):
     users = load_users()
-    if user["username"] not in users:
+    username = user.get("username")
+    password = user.get("password")
+    if username not in users:
         raise HTTPException(400, "Utilisateur introuvable")
-    if users[user["username"]]["password"] != user["password"]:
+    if users[username]["password"] != password:
         raise HTTPException(400, "Mot de passe incorrect")
-
+    
+    # Génération du JWT
     token = jwt.encode(
-        {"user": user["username"], "exp": time.time() + 3600*24},
+        {"user": username, "exp": time.time() + 3600*24},
         SECRET_KEY,
         algorithm="HS256"
     )
     return {"token": token}
 
-# WebSocket endpoint
+# WEBSOCKET
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     token = websocket.query_params.get("token")
@@ -91,14 +108,7 @@ async def websocket_endpoint(websocket: WebSocket):
         print(f"{username} déconnecté.")
         connected_clients.remove((websocket, username))
 
-# Home
-@app.get("/")
-def home():
-    return HTMLResponse("""
-    <h1>Serveur WebSocket opérationnel</h1>
-    <a href='/static/login.html'>➡️ Login</a>
-    """)
-
+# RUN
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("server:app", host="0.0.0.0", port=8000)

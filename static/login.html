@@ -3,108 +3,35 @@
 <head>
 <meta charset="UTF-8">
 <title>Connexion</title>
-
 <style>
-    body {
-        margin: 0;
-        height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background: linear-gradient(135deg, #12121c, #1e1e2f);
-        font-family: "Segoe UI", sans-serif;
-        color: #fff;
-    }
-
-    .box {
-        width: 350px;
-        background: rgba(255,255,255,0.08);
-        padding: 25px;
-        border-radius: 16px;
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(255,255,255,0.2);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.4);
-        text-align: center;
-    }
-
-    h2 {
-        margin: 0 0 20px;
-        font-weight: 300;
-    }
-
-    input {
-        width: 100%;
-        padding: 10px;
-        margin: 8px 0;
-        border: none;
-        border-radius: 12px;
-        background: rgba(255,255,255,0.15);
-        color: #fff;
-        outline: none;
-    }
-
-    button {
-        width: 100%;
-        padding: 12px;
-        margin-top: 15px;
-        border: none;
-        background: #7b5cff;
-        border-radius: 12px;
-        color: white;
-        font-weight: 600;
-        cursor: pointer;
-        transition: 0.2s;
-    }
-
-    button:hover {
-        transform: translateY(-2px);
-    }
-
-    a {
-        display: block;
-        margin-top: 15px;
-        color: #7b5cff;
-        text-decoration: none;
-    }
+body {margin:0;height:100vh;display:flex;justify-content:center;align-items:center;background:linear-gradient(135deg,#12121c,#1e1e2f);font-family:"Segoe UI",sans-serif;color:#fff;}
+.box {width:350px;background:rgba(255,255,255,0.08);padding:25px;border-radius:16px;backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.2);box-shadow:0 8px 25px rgba(0,0,0,0.4);text-align:center;}
+h2 {margin:0 0 20px;font-weight:300;}
+input {width:100%;padding:10px;margin:8px 0;border:none;border-radius:12px;background:rgba(255,255,255,0.15);color:#fff;outline:none;}
+button {width:100%;padding:12px;margin-top:15px;border:none;background:#7b5cff;border-radius:12px;color:white;font-weight:600;cursor:pointer;transition:.2s;}
+button:hover {transform:translateY(-2px);}
+a {display:block;margin-top:15px;color:#7b5cff;text-decoration:none;}
 </style>
 </head>
-
 <body>
-
 <div class="box">
-    <h2>Connexion</h2>
-
-    <input id="username" type="text" placeholder="Nom d'utilisateur">
-    <input id="password" type="password" placeholder="Mot de passe">
-
-    <button onclick="login()">Se connecter</button>
-
-    <a href="register.html">Créer un compte</a>
+<h2>Connexion</h2>
+<input id="username" type="text" placeholder="Nom d'utilisateur">
+<input id="password" type="password" placeholder="Mot de passe">
+<button onclick="login()">Se connecter</button>
+<a href="register.html">Créer un compte</a>
 </div>
-
 <script>
-async function login() {
-    const username = document.getElementById("username").value.trim();
-    const password = document.getElementById("password").value.trim();
-
-    let res = await fetch("/login", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({username, password})
-    });
-
-    if (!res.ok) {
-        alert("Identifiants incorrects");
-        return;
-    }
-
-    let data = await res.json();
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("username", username);
-
-    window.location.href = "chat.html";
+async function login(){
+  const username=document.getElementById("username").value.trim();
+  const password=document.getElementById("password").value.trim();
+  let res=await fetch("/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username,password})});
+  if(!res.ok){alert("Identifiants incorrects");return;}
+  let data=await res.json();
+  localStorage.setItem("token",data.token);
+  localStorage.setItem("username",username);
+  window.location.href="chat.html";
 }
 </script>
-
 </body>
 </html>

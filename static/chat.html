@@ -12,12 +12,13 @@ h1{text-align:center;margin:0 0 10px;font-weight:300}
 @keyframes pop{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
 .me{align-self:flex-end;background:#7b5cff;border-right:3px solid #fff5}
 .other{align-self:flex-start;background:rgba(255,255,255,0.15);border-left:3px solid #7b5cff}
-.input-area{display:flex;margin-top:15px;gap:10px}
+.input-area{display:flex;margin-top:15px;gap:10px;flex-wrap:wrap}
 #msg{flex:1;padding:10px;border-radius:12px;background:rgba(255,255,255,0.12);border:none;color:white;outline:none}
 button{padding:10px 18px;border:none;border-radius:12px;background:#7b5cff;color:#fff;cursor:pointer;transition:.2s}
 button:hover{transform:translateY(-2px)}
 .logout{text-align:center;margin-top:10px}
 .logout a{color:#7b5cff;cursor:pointer}
+input[type="file"]{color:white}
 </style>
 </head>
 <body>
@@ -27,35 +28,66 @@ button:hover{transform:translateY(-2px)}
 <div class="input-area">
 <input id="msg" type="text" placeholder="Écris un message…">
 <button onclick="sendMsg()">Envoyer</button>
+<input id="fileInput" type="file">
+<button onclick="sendFile()">Envoyer fichier</button>
 </div>
 <div class="logout">
 <a onclick="logout()">Se déconnecter</a>
 </div>
 </div>
 <script>
-const token=localStorage.getItem("token");
-const username=localStorage.getItem("username");
-if(!token)window.location.href="login.html";
-const ws=new WebSocket("wss://"+location.host+"/ws?token="+token);
-ws.onmessage=function(event){
-  const msgBox=document.getElementById("messages");
-  const data=JSON.parse(event.data);
-  const bubble=document.createElement("div");
+const token = localStorage.getItem("token");
+const username = localStorage.getItem("username");
+if (!token) window.location.href="login.html";
+
+const ws = new WebSocket("wss://" + location.host + "/ws?token=" + token);
+
+ws.onmessage = function(event) {
+  const msgBox = document.getElementById("messages");
+  const data = JSON.parse(event.data);
+  const bubble = document.createElement("div");
   bubble.classList.add("bubble");
-  bubble.classList.add(data.user===username?"me":"other");
-  bubble.textContent=data.user+" : "+data.text;
+  bubble.classList.add(data.user === username ? "me" : "other");
+
+  if(data.text) {
+    bubble.textContent = data.user + " : " + data.text;
+  } else if(data.file) {
+    const link = document.createElement("a");
+    link.href = "/uploads/" + data.file;
+    link.textContent = data.user + " a envoyé : " + data.file;
+    link.target = "_blank";
+    bubble.appendChild(link);
+  }
+
   msgBox.appendChild(bubble);
-  msgBox.scrollTop=msgBox.scrollHeight;
+  msgBox.scrollTop = msgBox.scrollHeight;
 };
-function sendMsg(){
-  const inp=document.getElementById("msg");
-  if(!inp.value.trim())return;
-  ws.send(inp.value);
-  inp.value="";
+
+function sendMsg() {
+  const inp = document.getElementById("msg");
+  if (!inp.value.trim()) return;
+  ws.send(JSON.stringify({type: "text", text: inp.value}));
+  inp.value = "";
 }
-function logout(){
+
+function sendFile() {
+  const fileInput = document.getElementById("fileInput");
+  if (!fileInput.files.length) return;
+  const file = fileInput.files[0];
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    const base64Data = reader.result.split(",")[1];
+    ws.send(JSON.stringify({type: "file", filename: file.name, content: base64Data}));
+  };
+
+  reader.readAsDataURL(file);
+  fileInput.value = "";
+}
+
+function logout() {
   localStorage.clear();
-  window.location.href="login.html";
+  window.location.href = "login.html";
 }
 </script>
 </body>

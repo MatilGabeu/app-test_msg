@@ -8,15 +8,16 @@ import time
 import os
 import base64
 
-SECRET_KEY = "CHANGE_THIS_TO_A_SECRET_KEY"
+# 🔐 Clé secrète via variable d'environnement
+SECRET_KEY = os.getenv("SECRET_KEY", "fallback_secret")
 
 app = FastAPI()
 
-# Crée le dossier uploads s'il n'existe pas
+# Crée le dossier uploads si nécessaire
 if not os.path.exists("uploads"):
     os.makedirs("uploads")
 
-# Serve static files
+# Static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
@@ -49,12 +50,8 @@ connected_clients = []
 
 @app.get("/")
 def home():
-    return HTMLResponse("""
-    <h1>Serveur WebSocket opérationnel</h1>
-    <a href='/static/login.html'>➡️ Login</a>
-    """)
+    return HTMLResponse("<h1>Serveur WebSocket opérationnel</h1><a href='/static/login.html'>Login</a>")
 
-# REGISTER
 @app.post("/register")
 def register(user: dict):
     users = load_users()
@@ -68,7 +65,6 @@ def register(user: dict):
     save_users(users)
     return {"status": "ok"}
 
-# LOGIN
 @app.post("/login")
 def login(user: dict):
     users = load_users()
@@ -86,7 +82,6 @@ def login(user: dict):
     )
     return {"token": token}
 
-# WEBSOCKET
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     token = websocket.query_params.get("token")
@@ -112,7 +107,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 if msg.get("type") == "file":
                     filename = msg["filename"]
                     content = base64.b64decode(msg["content"])
-                    with open(f"uploads/{filename}", "wb") as f:
+                    filepath = os.path.join("uploads", filename)
+                    with open(filepath, "wb") as f:
                         f.write(content)
                     broadcast_msg = {"user": username, "file": filename}
                 else:
@@ -127,7 +123,6 @@ async def websocket_endpoint(websocket: WebSocket):
         print(f"{username} déconnecté.")
         connected_clients.remove((websocket, username))
 
-# RUN
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("server:app", host="0.0.0.0", port=8000)

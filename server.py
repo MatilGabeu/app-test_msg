@@ -1,19 +1,26 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from jose import jwt
 import json
 import time
+import os
+import base64
 
 SECRET_KEY = "CHANGE_THIS_TO_A_SECRET_KEY"
 
 app = FastAPI()
 
+# Crée le dossier uploads s'il n'existe pas
+if not os.path.exists("uploads"):
+    os.makedirs("uploads")
+
 # Serve static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-# CORS (utile si front séparé)
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -72,7 +79,6 @@ def login(user: dict):
     if users[username]["password"] != password:
         raise HTTPException(400, "Mot de passe incorrect")
     
-    # Génération du JWT
     token = jwt.encode(
         {"user": username, "exp": time.time() + 3600*24},
         SECRET_KEY,
@@ -100,10 +106,23 @@ async def websocket_endpoint(websocket: WebSocket):
 
     try:
         while True:
-            text = await websocket.receive_text()
-            message = {"user": username, "text": text}
+            data = await websocket.receive_text()
+            try:
+                msg = json.loads(data)
+                if msg.get("type") == "file":
+                    filename = msg["filename"]
+                    content = base64.b64decode(msg["content"])
+                    with open(f"uploads/{filename}", "wb") as f:
+                        f.write(content)
+                    broadcast_msg = {"user": username, "file": filename}
+                else:
+                    broadcast_msg = {"user": username, "text": msg.get("text")}
+            except json.JSONDecodeError:
+                broadcast_msg = {"user": username, "text": data}
+
             for client, _ in connected_clients:
-                await client.send_json(message)
+                await client.send_json(broadcast_msg)
+
     except WebSocketDisconnect:
         print(f"{username} déconnecté.")
         connected_clients.remove((websocket, username))
